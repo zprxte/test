@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitScale - โปรแกรมคำนวณ BMI & วิเคราะห์สุขภาพ</title>
+  <!-- Google Fonts: Outfit for English/Numbers & Sarabun for Thai -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Design Tokens & Reset */
+    :root {
+      --bg-dark: #0d0a21;
+      --bg-card: rgba(30, 27, 57, 0.45);
+      --bg-card-hover: rgba(43, 39, 79, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(139, 92, 246, 0.5);
+      --text-main: #ffffff;
+      --text-muted: #a5b4fc;
+      
+      /* BMI Category Colors */
+      --color-underweight: #38bdf8; /* Cyan */
+      --color-normal: #34d399;       /* Green */
+      --color-overweight: #fbbf24;   /* Amber */
+      --color-obese: #f87171;        /* Red */
+      
+      /* Gradients */
+      --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+      --gradient-glow: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', 'Sarabun', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      z-index: 10;
+    }
+
+    /* Header Design */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .logo-icon {
+      background: var(--gradient-primary);
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .logo-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: white;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffffff, #d946ef, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      font-weight: 300;
+      margin-top: 0.5rem;
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card styling */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.75rem;
+    }
+
+    .card-title svg {
+      width: 20px;
+      height: 20px;
+      fill: url(#title-grad);
+    }
+
+    /* Interactive Elements: Gender & Unit Switch */
+    .toggle-group {
+      display: flex;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 0.25rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .toggle-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .toggle-btn.active {
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+    }
+
+    /* Input Grid styling */
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 500px) {
+      .input-row {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+    }
+
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    label span.val-display {
+      color: white;
+      font-weight: 600;
+    }
+
+    /* Inputs: Number, Select */
+    .input-control {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      font-size: 1.1rem;
+      color: white;
+      width: 100%;
+      outline: none;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .input-control:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+    }
+
+    /* Custom range sliders */
+    .slider-container {
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .range-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      transition: background 0.3s;
+    }
+
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 0 4px rgba(139, 92, 246, 0.3);
+      transition: transform 0.1s, background 0.3s;
+    }
+
+    .range-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      background: #d946ef;
+    }
+
+    .range-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border: none;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 0 4px rgba(139, 92, 246, 0.3);
+      transition: transform 0.1s, background 0.3s;
+    }
+
+    .range-slider::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      background: #d946ef;
+    }
+
+    /* Gender Selection Panel */
+    .gender-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .gender-option {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: var(--text-muted);
+    }
+
+    .gender-option svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--text-muted);
+      transition: all 0.3s ease;
+    }
+
+    .gender-option.active {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: white;
+    }
+
+    .gender-option.active svg {
+      fill: #d946ef;
+      transform: scale(1.1);
+    }
+
+    /* Buttons */
+    .btn-calculate {
+      width: 100%;
+      background: var(--gradient-primary);
+      border: none;
+      color: white;
+      padding: 1rem;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(217, 70, 239, 0.25);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-calculate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(217, 70, 239, 0.4);
+      filter: brightness(1.1);
+    }
+
+    .btn-calculate:active {
+      transform: translateY(0);
+    }
+
+    /* Result Section & Gauge Design */
+    .results-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Glow effect behind the gauge */
+    .results-card::before {
+      content: '';
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      background: var(--color-normal);
+      opacity: 0.05;
+      filter: blur(60px);
+      top: 10%;
+      z-index: 0;
+      transition: background-color 0.5s ease;
+    }
+
+    .results-card.underweight::before { background-color: var(--color-underweight); }
+    .results-card.normal::before { background-color: var(--color-normal); }
+    .results-card.overweight::before { background-color: var(--color-overweight); }
+    .results-card.obese::before { background-color: var(--color-obese); }
+
+    /* SVG Gauge */
+    .gauge-wrapper {
+      position: relative;
+      width: 200px;
+      height: 120px;
+      margin-top: 1rem;
+      z-index: 1;
+    }
+
+    .gauge {
+      width: 100%;
+      height: 100%;
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.06);
+      stroke-width: 12;
+      stroke-linecap: round;
+    }
+
+    .gauge-track {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 220; /* Circumference of semicircle (r=70 => PI*r = 220) */
+      stroke-dashoffset: 220;
+      transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;
+    }
+
+    .gauge-needle {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      width: 4px;
+      height: 65px;
+      background: white;
+      border-radius: 4px;
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(-90deg); /* Starts at 0% (far left) */
+      transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px rgba(255,255,255,0.6);
+    }
+
+    .gauge-needle::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--text-main);
+      border: 3px solid var(--bg-dark);
+      transform: translateX(-50%);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    }
+
+    /* Score Details display */
+    .score-container {
+      text-align: center;
+      margin-top: -10px;
+      margin-bottom: 1.5rem;
+      z-index: 1;
+    }
+
+    .score-num {
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .score-badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.5s ease;
+    }
+
+    .score-badge.underweight { background-color: rgba(56, 189, 248, 0.2); color: var(--color-underweight); }
+    .score-badge.normal { background-color: rgba(52, 211, 153, 0.2); color: var(--color-normal); }
+    .score-badge.overweight { background-color: rgba(251, 191, 36, 0.2); color: var(--color-overweight); }
+    .score-badge.obese { background-color: rgba(248, 113, 113, 0.2); color: var(--color-obese); }
+
+    /* Health Advice Card */
+    .report-card {
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 1.25rem;
+      width: 100%;
+      margin-bottom: 1rem;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .report-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.5rem;
+    }
+
+    .report-item:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .report-label {
+      color: var(--text-muted);
+    }
+
+    .report-value {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .report-advice {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+      text-align: center;
+      padding: 0.5rem 0;
+      margin-top: 0.5rem;
+    }
+
+    /* History Log Section */
+    .history-card {
+      margin-top: 2rem;
+      grid-column: 1 / -1;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .btn-clear-all {
+      background: transparent;
+      border: 1px solid rgba(248, 113, 113, 0.4);
+      color: var(--color-obese);
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-clear-all:hover {
+      background: rgba(248, 113, 113, 0.1);
+      border-color: var(--color-obese);
+    }
+
+    /* History Grid & List */
+    .history-container {
+      max-height: 300px;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    /* Custom Scrollbar */
+    .history-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .history-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 3px;
+    }
+    .history-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    .history-container::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1.5fr auto;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    @media (max-width: 600px) {
+      .history-item {
+        grid-template-columns: 1.5fr 1fr 1.5fr auto;
+      }
+      .history-item .hist-height {
+        display: none;
+      }
+    }
+
+    .history-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.02);
+      transform: translateX(4px);
+    }
+
+    .hist-date-box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hist-date {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .hist-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .hist-spec {
+      font-size: 0.9rem;
+      color: #f1f5f9;
+    }
+
+    .hist-spec label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .hist-bmi-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hist-bmi-num {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .hist-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .hist-dot.underweight { background-color: var(--color-underweight); box-shadow: 0 0 6px var(--color-underweight); }
+    .hist-dot.normal { background-color: var(--color-normal); box-shadow: 0 0 6px var(--color-normal); }
+    .hist-dot.overweight { background-color: var(--color-overweight); box-shadow: 0 0 6px var(--color-overweight); }
+    .hist-dot.obese { background-color: var(--color-obese); box-shadow: 0 0 6px var(--color-obese); }
+
+    .hist-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .hist-badge.underweight { background: rgba(56, 189, 248, 0.15); color: var(--color-underweight); }
+    .hist-badge.normal { background: rgba(52, 211, 153, 0.15); color: var(--color-normal); }
+    .hist-badge.overweight { background: rgba(251, 191, 36, 0.15); color: var(--color-overweight); }
+    .hist-badge.obese { background: rgba(248, 113, 113, 0.15); color: var(--color-obese); }
+
+    .btn-delete-hist {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s;
+    }
+
+    .btn-delete-hist:hover {
+      background: rgba(248, 113, 113, 0.15);
+    }
+
+    .btn-delete-hist svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+      transition: fill 0.3s;
+    }
+
+    .btn-delete-hist:hover svg {
+      fill: var(--color-obese);
+    }
+
+    .empty-history {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-style: italic;
+    }
+
+    /* Trend SVG Chart Section */
+    .trend-section {
+      margin-top: 1rem;
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 16px;
+      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .trend-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .trend-title {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .trend-stats {
+      font-weight: 700;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .trend-up { color: var(--color-obese); }
+    .trend-down { color: var(--color-normal); }
+    .trend-stable { color: var(--text-muted); }
+
+    .trend-chart-container {
+      width: 100%;
+      height: 80px;
+      position: relative;
+    }
+
+    .trend-chart {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .trend-path {
+      fill: none;
+      stroke: url(#chart-grad);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .trend-glow {
+      fill: none;
+      stroke: #8b5cf6;
+      stroke-width: 6;
+      stroke-opacity: 0.15;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .trend-dots circle {
+      fill: #ffffff;
+      stroke: #d946ef;
+      stroke-width: 2.5;
+      transition: r 0.2s ease;
+      cursor: pointer;
+    }
+
+    .trend-dots circle:hover {
+      r: 6;
+    }
+
+    .trend-area {
+      fill: url(#area-grad);
+      opacity: 0.12;
+    }
+
+    /* Hide element class */
+    .hidden {
+      display: none !important;
+    }
+
+    /* SVG Gradients for general UI */
+    .svg-defs-hidden {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden SVG Definitions for reuse -->
+  <svg class="svg-defs-hidden">
+    <defs>
+      <linearGradient id="title-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#8b5cf6" />
+        <stop offset="100%" stop-color="#d946ef" />
+      </linearGradient>
+      <linearGradient id="chart-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#38bdf8" />
+        <stop offset="50%" stop-color="#8b5cf6" />
+        <stop offset="100%" stop-color="#d946ef" />
+      </linearGradient>
+      <linearGradient id="area-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#8b5cf6" />
+        <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="container">
+    
+    <!-- Logo & Title -->
+    <header>
+      <div class="logo-container">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24">
+            <!-- Icon showing scales/health meter -->
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6h6v-2h-4V7z"/>
+          </svg>
+        </div>
+      </div>
+      <h1>FitScale BMI</h1>
+      <p>วิเคราะห์สุขภาพ ดัชนีมวลกาย และบันทึกประวัติการเปลี่ยนแปลงของคุณ</p>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      
+      <!-- Column 1: Input controls -->
+      <section class="glass-card">
+        <h2 class="card-title">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+          </svg>
+          ข้อมูลสัดส่วนและร่างกาย
+        </h2>
+
+        <!-- Metric / Imperial Toggle -->
+        <div class="toggle-group" id="unit-toggle">
+          <button class="toggle-btn active" data-unit="metric">เมตริก (kg / cm)</button>
+          <button class="toggle-btn" data-unit="imperial">อิมพีเรียล (lbs / ft-in)</button>
+        </div>
+
+        <!-- Gender Cards Selection -->
+        <div class="gender-grid" id="gender-select">
+          <div class="gender-option active" data-gender="male">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.59L6.41 13 8 11.41l3 3 6.59-6.59L19 9.41 11 17.59z"/>
+            </svg>
+            <span>ชาย</span>
+          </div>
+          <div class="gender-option" data-gender="female">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.59L6.41 13 8 11.41l3 3 6.59-6.59L19 9.41 11 17.59z"/>
+            </svg>
+            <span>หญิง</span>
+          </div>
+          <div class="gender-option" data-gender="custom">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15.59L6.41 13 8 11.41l3 3 6.59-6.59L19 9.41 11 17.59z"/>
+            </svg>
+            <span>ทางเลือก</span>
+          </div>
+        </div>
+
+        <!-- Inputs Wrapper -->
+        <div class="inputs-container">
+          
+          <div class="input-row">
+            <!-- Age input -->
+            <div class="input-wrapper">
+              <label for="input-age">อายุ (ปี) <span class="val-display" id="age-val">25</span></label>
+              <input type="number" id="input-age" class="input-control" value="25" min="2" max="120">
+              <div class="slider-container">
+                <input type="range" id="slider-age" class="range-slider" min="2" max="120" value="25">
+              </div>
+            </div>
+            
+            <!-- Weight Inputs (Metric / Imperial) -->
+            <div class="input-wrapper">
+              <!-- Label dynamically text changed -->
+              <label for="input-weight"><span id="weight-label-text">น้ำหนัก (กิโลกรัม)</span> <span class="val-display" id="weight-val">65</span></label>
+              <input type="number" step="0.1" id="input-weight" class="input-control" value="65" min="10" max="300">
+              <div class="slider-container">
+                <input type="range" step="0.5" id="slider-weight" class="range-slider" min="10" max="250" value="65">
+              </div>
+            </div>
+          </div>
+
+          <!-- Height Inputs (Metric / Imperial) -->
+          <div class="input-row" id="height-metric-row">
+            <div class="input-wrapper" style="grid-column: 1 / -1;">
+              <label for="input-height">ส่วนสูง (เซนติเมตร) <span class="val-display" id="height-val">170</span></label>
+              <input type="number" id="input-height" class="input-control" value="170" min="50" max="250">
+              <div class="slider-container">
+                <input type="range" id="slider-height" class="range-slider" min="50" max="250" value="170">
+              </div>
+            </div>
+          </div>
+
+          <div class="input-row hidden" id="height-imperial-row">
+            <!-- Feet -->
+            <div class="input-wrapper">
+              <label for="input-height-ft">ส่วนสูง (ฟุต)</label>
+              <input type="number" id="input-height-ft" class="input-control" value="5" min="2" max="8">
+            </div>
+            <!-- Inches -->
+            <div class="input-wrapper">
+              <label for="input-height-in">ส่วนสูง (นิ้ว)</label>
+              <input type="number" id="input-height-in" class="input-control" value="7" min="0" max="11">
+            </div>
+          </div>
+
+        </div>
+
+        <button class="btn-calculate" id="btn-calc">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-2v2h2v2h-2v2h-2v-2H9v-2h2V9H9V7h2V5h2v2h2v2z"/>
+          </svg>
+          คำนวณและบันทึกผล
+        </button>
+
+      </section>
+
+      <!-- Column 2: Results Analysis -->
+      <section class="glass-card results-card normal" id="results-panel">
+        <h2 class="card-title">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z"/>
+          </svg>
+          การวิเคราะห์ค่า BMI
+        </h2>
+
+        <!-- Gauge Component -->
+        <div class="gauge-wrapper">
+          <svg class="gauge" viewBox="0 0 180 100">
+            <!-- Background arc -->
+            <path class="gauge-bg" d="M 20,90 A 70,70 0 0,1 160,90" />
+            <!-- Colored Fill arc -->
+            <path class="gauge-track" id="gauge-fill" d="M 20,90 A 70,70 0 0,1 160,90" stroke="var(--color-normal)" />
+          </svg>
+          <!-- Rotating Needle -->
+          <div class="gauge-needle" id="gauge-needle"></div>
+        </div>
+
+        <!-- Score readout -->
+        <div class="score-container">
+          <div class="score-num" id="score-val">22.5</div>
+          <span class="score-badge normal" id="score-badge">สุขภาพดี / สมส่วน</span>
+        </div>
+
+        <!-- Health metrics detailed block -->
+        <div class="report-card">
+          <div class="report-item">
+            <span class="report-label">น้ำหนักปัจจุบัน</span>
+            <span class="report-value" id="rep-current-weight">65.0 กก.</span>
+          </div>
+          <div class="report-item">
+            <span class="report-label">ช่วงน้ำหนักที่เหมาะสม (Ideal Range)</span>
+            <span class="report-value" id="rep-ideal-range">53.5 กก. - 72.0 กก.</span>
+          </div>
+          <div class="report-item">
+            <span class="report-label">สถานะเปรียบเทียบ</span>
+            <span class="report-value" id="rep-diff-status">น้ำหนักอยู่ในเกณฑ์ปกติ</span>
+          </div>
+          <p class="report-advice" id="rep-advice">
+            คุณมีน้ำหนักตัวที่เหมาะสม สุขภาพดี ควรดูแลรักษาน้ำหนักให้อยู่ในเกณฑ์นี้ต่อไปด้วยการทานอาหารที่มีประโยชน์และออกกำลังกายอย่างสม่ำเสมอ
+          </p>
+        </div>
+
+      </section>
+
+      <!-- Row 2: History & Trends (Spans full width) -->
+      <section class="glass-card history-card">
+        <div class="history-header">
+          <h2 class="card-title" style="margin-bottom: 0; border: none; padding: 0;">
+            <svg viewBox="0 0 24 24">
+              <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+            </svg>
+            ประวัติการคำนวณและแนวโน้ม
+          </h2>
+          <button class="btn-clear-all" id="btn-clear-history">ล้างประวัติทั้งหมด</button>
+        </div>
+
+        <!-- Trend Chart Section (renders if records >= 2) -->
+        <div class="trend-section hidden" id="trend-section">
+          <div class="trend-header">
+            <span class="trend-title">แนวโน้มดัชนีมวลกาย (BMI Trend)</span>
+            <div class="trend-stats" id="trend-status-text">
+              <!-- Dynamically populated e.g. "ลดลง 0.5 kg จากครั้งก่อน" -->
+            </div>
+          </div>
+          <div class="trend-chart-container">
+            <svg class="trend-chart" id="trend-svg" preserveAspectRatio="none">
+              <!-- Paths and circles will be dynamically injected by JS -->
+            </svg>
+          </div>
+        </div>
+
+        <!-- History Records List -->
+        <div class="history-container" id="history-list">
+          <!-- Empty list state -->
+          <div class="empty-history" id="empty-history-text">
+            ไม่มีประวัติการคำนวณในระบบ เริ่มบันทึกเพื่อดูความก้าวหน้าของคุณ
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script>
+    // App State Management
+    let appState = {
+      unit: 'metric', // 'metric' or 'imperial'
+      gender: 'male', // 'male', 'female', 'custom'
+      age: 25,
+      weight: 65,     // Store internally in kilograms
+      height: 170,    // Store internally in centimeters
+      history: []
+    };
+
+    // DOM Elements Cache
+    const unitToggle = document.getElementById('unit-toggle');
+    const genderSelect = document.getElementById('gender-select');
+    
+    const inputAge = document.getElementById('input-age');
+    const sliderAge = document.getElementById('slider-age');
+    const ageValDisplay = document.getElementById('age-val');
+
+    const inputWeight = document.getElementById('input-weight');
+    const sliderWeight = document.getElementById('slider-weight');
+    const weightValDisplay = document.getElementById('weight-val');
+    const weightLabelText = document.getElementById('weight-label-text');
+
+    const heightMetricRow = document.getElementById('height-metric-row');
+    const heightImperialRow = document.getElementById('height-imperial-row');
+    const inputHeight = document.getElementById('input-height');
+    const sliderHeight = document.getElementById('slider-height');
+    const heightValDisplay = document.getElementById('height-val');
+
+    const inputHeightFt = document.getElementById('input-height-ft');
+    const inputHeightIn = document.getElementById('input-height-in');
+
+    const btnCalc = document.getElementById('btn-calc');
+    const btnClearHistory = document.getElementById('btn-clear-history');
+    
+    // Result elements
+    const resultsPanel = document.getElementById('results-panel');
+    const gaugeFill = document.getElementById('gauge-fill');
+    const gaugeNeedle = document.getElementById('gauge-needle');
+    const scoreVal = document.getElementById('score-val');
+    const scoreBadge = document.getElementById('score-badge');
+    const repCurrentWeight = document.getElementById('rep-current-weight');
+    const repIdealRange = document.getElementById('rep-ideal-range');
+    const repDiffStatus = document.getElementById('rep-diff-status');
+    const repAdvice = document.getElementById('rep-advice');
+    
+    // History list & trend
+    const historyList = document.getElementById('history-list');
+    const emptyHistoryText = document.getElementById('empty-history-text');
+    const trendSection = document.getElementById('trend-section');
+    const trendSvg = document.getElementById('trend-svg');
+    const trendStatusText = document.getElementById('trend-status-text');
+
+    // Load initial configuration and history
+    window.addEventListener('DOMContentLoaded', () => {
+      loadHistory();
+      syncInputs();
+      calculateBMI(false); // Calc initial without saving to history
+    });
+
+    // Helper conversions
+    function kgToLbs(kg) { return kg * 2.20462; }
+    function lbsToKg(lbs) { return lbs / 2.20462; }
+    function cmToFtIn(cm) {
+      const inchesTotal = cm / 2.54;
+      const ft = Math.floor(inchesTotal / 12);
+      const inch = Math.round(inchesTotal % 12);
+      return { ft: ft, in: inch === 12 ? 0 : inch };
+    }
+    function ftInToCm(ft, inches) {
+      return (ft * 12 + parseFloat(inches)) * 2.54;
+    }
+
+    // Tab switcher between metric & imperial
+    unitToggle.addEventListener('click', (e) => {
+      const clickedBtn = e.target.closest('.toggle-btn');
+      if (!clickedBtn) return;
+      
+      const selectedUnit = clickedBtn.dataset.unit;
+      if (selectedUnit === appState.unit) return;
+
+      // Update state & tabs class
+      document.querySelectorAll('#unit-toggle .toggle-btn').forEach(btn => btn.classList.remove('active'));
+      clickedBtn.classList.add('active');
+      appState.unit = selectedUnit;
+
+      // Swap view layout & convert values
+      if (selectedUnit === 'imperial') {
+        // Toggle input layouts
+        heightMetricRow.classList.add('hidden');
+        heightImperialRow.classList.remove('hidden');
+        
+        weightLabelText.textContent = "น้ำหนัก (ปอนด์)";
+        
+        // Convert Weight
+        const lbsVal = kgToLbs(appState.weight);
+        sliderWeight.min = 20;
+        sliderWeight.max = 550;
+        sliderWeight.step = 1;
+        sliderWeight.value = Math.round(lbsVal);
+        inputWeight.value = Math.round(lbsVal * 10) / 10;
+        weightValDisplay.textContent = Math.round(lbsVal);
+
+        // Convert Height to Feet & Inches
+        const ftIn = cmToFtIn(appState.height);
+        inputHeightFt.value = ftIn.ft;
+        inputHeightIn.value = ftIn.in;
+      } else {
+        // Metric Unit
+        heightMetricRow.classList.remove('hidden');
+        heightImperialRow.classList.add('hidden');
+
+        weightLabelText.textContent = "น้ำหนัก (กิโลกรัม)";
+        
+        // Convert Weight
+        sliderWeight.min = 10;
+        sliderWeight.max = 250;
+        sliderWeight.step = 0.5;
+        sliderWeight.value = Math.round(appState.weight * 2) / 2;
+        inputWeight.value = Math.round(appState.weight * 10) / 10;
+        weightValDisplay.textContent = Math.round(appState.weight * 10) / 10;
+
+        // Convert Height to CM
+        sliderHeight.value = Math.round(appState.height);
+        inputHeight.value = Math.round(appState.height);
+        heightValDisplay.textContent = Math.round(appState.height);
+      }
+    });
+
+    // Gender Selection Event Listener
+    genderSelect.addEventListener('click', (e) => {
+      const clickedBtn = e.target.closest('.gender-option');
+      if (!clickedBtn) return;
+
+      document.querySelectorAll('#gender-select .gender-option').forEach(btn => btn.classList.remove('active'));
+      clickedBtn.classList.add('active');
+      appState.gender = clickedBtn.dataset.gender;
+    });
+
+    // Inputs Synchronizer helper
+    function setupDualInputs(numInput, sliderInput, valueDisplay, stateKey, fraction = false) {
+      // Sync slider change to text and state
+      sliderInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        numInput.value = val;
+        valueDisplay.textContent = val;
+        
+        if (appState.unit === 'metric' || stateKey === 'age') {
+          appState[stateKey] = val;
+        } else if (stateKey === 'weight') {
+          // Weight slider contains imperial value, convert to metric internal state
+          appState.weight = lbsToKg(val);
+        }
+      });
+
+      // Sync number field change to slider and state
+      numInput.addEventListener('change', (e) => {
+        let val = parseFloat(e.target.value);
+        const minVal = parseFloat(e.target.min);
+        const maxVal = parseFloat(e.target.max);
+
+        if (isNaN(val) || val < minVal) val = minVal;
+        if (val > maxVal) val = maxVal;
+
+        e.target.value = val;
+        sliderInput.value = val;
+        valueDisplay.textContent = fraction ? val.toFixed(1) : Math.round(val);
+
+        if (appState.unit === 'metric' || stateKey === 'age') {
+          appState[stateKey] = val;
+        } else if (stateKey === 'weight') {
+          appState.weight = lbsToKg(val);
+        }
+      });
+    }
+
+    // Set up standard sliders syncing
+    setupDualInputs(inputAge, sliderAge, ageValDisplay, 'age');
+    setupDualInputs(inputWeight, sliderWeight, weightValDisplay, 'weight', true);
+    setupDualInputs(inputHeight, sliderHeight, heightValDisplay, 'height');
+
+    // Height Imperial Inputs Listeners
+    function syncImperialHeight() {
+      const ft = parseInt(inputHeightFt.value) || 0;
+      const inch = parseInt(inputHeightIn.value) || 0;
+      appState.height = ftInToCm(ft, inch);
+    }
+    inputHeightFt.addEventListener('change', syncImperialHeight);
+    inputHeightIn.addEventListener('change', syncImperialHeight);
+
+    // Sync input components from initial state
+    function syncInputs() {
+      inputAge.value = appState.age;
+      sliderAge.value = appState.age;
+      ageValDisplay.textContent = appState.age;
+
+      inputWeight.value = appState.weight;
+      sliderWeight.value = appState.weight;
+      weightValDisplay.textContent = appState.weight;
+
+      inputHeight.value = appState.height;
+      sliderHeight.value = appState.height;
+      heightValDisplay.textContent = appState.height;
+    }
+
+    // Calculate BMI & advice
+    function calculateBMI(saveToHist = true) {
+      // Refresh current states in case of direct button clicking
+      if (appState.unit === 'imperial') {
+        const ft = parseInt(inputHeightFt.value) || 0;
+        const inch = parseInt(inputHeightIn.value) || 0;
+        appState.height = ftInToCm(ft, inch);
+
+        const lbs = parseFloat(inputWeight.value) || 0;
+        appState.weight = lbsToKg(lbs);
+      } else {
+        appState.height = parseFloat(inputHeight.value) || 170;
+        appState.weight = parseFloat(inputWeight.value) || 65;
+      }
+
+      const hMeter = appState.height / 100;
+      if (hMeter <= 0) return;
+
+      const bmi = appState.weight / (hMeter * hMeter);
+      const bmiRounded = Math.round(bmi * 10) / 10;
+
+      // Ideal range
+      const idealMin = Math.round(18.5 * (hMeter * hMeter) * 10) / 10;
+      const idealMax = Math.round(24.9 * (hMeter * hMeter) * 10) / 10;
+
+      // Dynamic gauge & needle updates
+      updateGauge(bmiRounded);
+
+      // Category assignment
+      let category = '';
+      let advice = '';
+      let badgeClass = '';
+      let panelClass = '';
+
+      if (bmiRounded < 18.5) {
+        category = 'น้ำหนักต่ำกว่าเกณฑ์ (Underweight)';
+        advice = 'คุณมีน้ำหนักตัวต่ำกว่าเกณฑ์มาตรฐาน อาจมีความเสี่ยงต่อการได้รับสารอาหารไม่เพียงพอ ควรปรึกษานักโภชนาการ ทานอาหารที่มีโปรตีนและคาร์โบไฮเดรตที่มีประโยชน์เพิ่มขึ้น และออกกำลังกายประเภทสร้างกล้ามเนื้อ (Strength Training)';
+        badgeClass = 'underweight';
+        panelClass = 'underweight';
+      } else if (bmiRounded >= 18.5 && bmiRounded < 25.0) {
+        category = 'น้ำหนักปกติ สมส่วน (Normal Weight)';
+        advice = 'ยินดีด้วย! คุณมีน้ำหนักตัวที่เหมาะสมและสมส่วนดีมาก มีความเสี่ยงต่อโรคที่เกิดจากความอ้วนต่ำ ควรเน้นการรักษาสมดุลโภชนาการ และออกกำลังกายแบบคาร์ดิโอควบคู่กับการเวทเทรนนิ่งอย่างสม่ำเสมอ';
+        badgeClass = 'normal';
+        panelClass = 'normal';
+      } else if (bmiRounded >= 25.0 && bmiRounded < 30.0) {
+        category = 'น้ำหนักเกินเกณฑ์ (Overweight)';
+        advice = 'คุณเริ่มมีน้ำหนักตัวเกินเกณฑ์ ซึ่งเพิ่มความเสี่ยงต่อปัญหาสุขภาพในอนาคต เช่น เบาหวาน ความดันโลหิตสูง ควรลดสัดส่วนของอาหารประเภทแป้งขัดสี ไขมันอิ่มตัว และน้ำตาล พร้อมกับเพิ่มอัตราการเคลื่อนไหวร่างกายอย่างน้อย 150 นาทีต่อสัปดาห์';
+        badgeClass = 'overweight';
+        panelClass = 'overweight';
+      } else {
+        category = 'โรคอ้วน (Obese)';
+        advice = 'คุณจัดอยู่ในเกณฑ์โรคอ้วน ซึ่งมีความเสี่ยงสูงมากต่อภาวะหลอดเลือดหัวใจตีบ โรคไขมันพอกตับ ความดัน และเบาหวาน แนะนำให้ปรับพฤติกรรมลดน้ำหนักอย่างจริงจัง หรือเข้ารับการปรึกษาจากแพทย์ผู้เชี่ยวชาญเพื่อวางแผนการลดน้ำหนักอย่างปลอดภัย';
+        badgeClass = 'obese';
+        panelClass = 'obese';
+      }
+
+      // Display outputs
+      scoreVal.textContent = bmiRounded.toFixed(1);
+      scoreBadge.textContent = category;
+      scoreBadge.className = `score-badge ${badgeClass}`;
+      
+      // Update results panel background glows
+      resultsPanel.className = `glass-card results-card ${panelClass}`;
+
+      // Weight stats values depending on units representation
+      let unitLabel = appState.unit === 'metric' ? 'กก.' : 'ปอนด์';
+      let currentWeightDisplay = appState.unit === 'metric' ? appState.weight : kgToLbs(appState.weight);
+      let minIdealDisplay = appState.unit === 'metric' ? idealMin : kgToLbs(idealMin);
+      let maxIdealDisplay = appState.unit === 'metric' ? idealMax : kgToLbs(idealMax);
+
+      repCurrentWeight.textContent = `${currentWeightDisplay.toFixed(1)} ${unitLabel}`;
+      repIdealRange.textContent = `${minIdealDisplay.toFixed(1)} ${unitLabel} - ${maxIdealDisplay.toFixed(1)} ${unitLabel}`;
+
+      // Difference Status
+      let diffStatusText = '';
+      if (currentWeightDisplay < minIdealDisplay) {
+        const diff = minIdealDisplay - currentWeightDisplay;
+        diffStatusText = `ต่ำกว่าเกณฑ์ปกติเฉลี่ย ${diff.toFixed(1)} ${unitLabel} (ควรเพิ่มน้ำหนัก)`;
+        repDiffStatus.style.color = 'var(--color-underweight)';
+      } else if (currentWeightDisplay > maxIdealDisplay) {
+        const diff = currentWeightDisplay - maxIdealDisplay;
+        diffStatusText = `สูงกว่าเกณฑ์ปกติเฉลี่ย ${diff.toFixed(1)} ${unitLabel} (ควรลดน้ำหนัก)`;
+        repDiffStatus.style.color = 'var(--color-obese)';
+      } else {
+        diffStatusText = 'น้ำหนักอยู่ในเกณฑ์สุขภาพดีที่แนะนำ';
+        repDiffStatus.style.color = 'var(--color-normal)';
+      }
+      repDiffStatus.textContent = diffStatusText;
+      repAdvice.textContent = advice;
+
+      // Save record in history if flag is active
+      if (saveToHist) {
+        const record = {
+          id: Date.now(),
+          date: new Date().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }),
+          time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+          weight: appState.weight,
+          height: appState.height,
+          bmi: bmiRounded,
+          badgeClass: badgeClass,
+          categoryName: category.split(' ')[0] // Gets the main Thai tag
+        };
+
+        appState.history.unshift(record);
+        saveHistoryToLocalStorage();
+        renderHistory();
+      }
+    }
+
+    // Setup visual SVG needle rotation
+    function updateGauge(bmi) {
+      // Cap BMI ranges for the gauge between 15 and 35
+      const minBmi = 15;
+      const maxBmi = 35;
+      let percent = (bmi - minBmi) / (maxBmi - minBmi);
+      if (percent < 0) percent = 0;
+      if (percent > 1) percent = 1;
+
+      // Semi-circle rotate goes from -90 degrees (underweight) to 90 degrees (obese)
+      const rotationDegrees = -90 + (percent * 180);
+      gaugeNeedle.style.transform = `translateX(-50%) rotate(${rotationDegrees}deg)`;
+
+      // Dash offset mapping (220 is empty, 0 is full circle)
+      const offset = 220 - (percent * 220);
+      gaugeFill.style.strokeDashoffset = offset;
+
+      // Color mapping
+      let trackColor = 'var(--color-normal)';
+      if (bmi < 18.5) trackColor = 'var(--color-underweight)';
+      else if (bmi >= 18.5 && bmi < 25.0) trackColor = 'var(--color-normal)';
+      else if (bmi >= 25.0 && bmi < 30.0) trackColor = 'var(--color-overweight)';
+      else trackColor = 'var(--color-obese)';
+
+      gaugeFill.style.stroke = trackColor;
+    }
+
+    // Save and Load history logic
+    function saveHistoryToLocalStorage() {
+      localStorage.setItem('fitscale_bmi_history', JSON.stringify(appState.history));
+    }
+
+    function loadHistory() {
+      const stored = localStorage.getItem('fitscale_bmi_history');
+      if (stored) {
+        try {
+          appState.history = JSON.parse(stored);
+        } catch (e) {
+          appState.history = [];
+        }
+      } else {
+        appState.history = [];
+      }
+      renderHistory();
+    }
+
+    // Render Calculation History Items
+    function renderHistory() {
+      historyList.innerHTML = '';
+
+      if (appState.history.length === 0) {
+        emptyHistoryText.classList.remove('hidden');
+        historyList.appendChild(emptyHistoryText);
+        trendSection.classList.add('hidden');
+        return;
+      }
+
+      emptyHistoryText.classList.add('hidden');
+
+      // Populate history items
+      appState.history.forEach((record) => {
+        // Format weight representation based on selection unit inside the history view
+        let currentWeightDisplay = record.weight;
+        let weightUnit = 'กก.';
+        let currentHeightDisplay = Math.round(record.height);
+        let heightUnit = 'ซม.';
+
+        if (appState.unit === 'imperial') {
+          currentWeightDisplay = Math.round(kgToLbs(record.weight));
+          weightUnit = 'lbs';
+          const ftIn = cmToFtIn(record.height);
+          currentHeightDisplay = `${ftIn.ft}'${ftIn.in}"`;
+          heightUnit = '';
+        } else {
+          currentWeightDisplay = currentWeightDisplay.toFixed(1);
+        }
+
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+          <div class="hist-date-box">
+            <span class="hist-date">${record.date}</span>
+            <span class="hist-time">${record.time}</span>
+          </div>
+          <div class="hist-spec">
+            <label>น้ำหนัก</label>
+            ${currentWeightDisplay} ${weightUnit}
+          </div>
+          <div class="hist-spec hist-height">
+            <label>ส่วนสูง</label>
+            ${currentHeightDisplay} ${heightUnit}
+          </div>
+          <div class="hist-bmi-box">
+            <span class="hist-dot ${record.badgeClass}"></span>
+            <span class="hist-bmi-num">${record.bmi.toFixed(1)}</span>
+            <span class="hist-badge ${record.badgeClass}">${record.categoryName}</span>
+          </div>
+          <button class="btn-delete-hist" data-id="${record.id}" title="ลบรายการนี้">
+            <svg viewBox="0 0 24 24">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+          </button>
+        `;
+        historyList.appendChild(item);
+      });
+
+      // Render Trend Chart & Statistics
+      renderTrendChart();
+    }
+
+    // Render interactive SVG Trend Chart
+    function renderTrendChart() {
+      // We need at least 2 records to plot a trend line
+      if (appState.history.length < 2) {
+        trendSection.classList.add('hidden');
+        return;
+      }
+
+      trendSection.classList.remove('hidden');
+
+      // Sort records chronological order (oldest first)
+      const data = [...appState.history].slice(0, 10).reverse(); // Max 10 points for readability
+      
+      const width = trendSvg.clientWidth || 300;
+      const height = 80;
+      const padding = 15;
+
+      // Find min & max BMI in history to scale Y axis
+      const bmis = data.map(d => d.bmi);
+      let minBmi = Math.min(...bmis) - 1;
+      let maxBmi = Math.max(...bmis) + 1;
+      
+      // Prevent flat line issues if all BMIs are identical
+      if (minBmi === maxBmi) {
+        minBmi -= 2;
+        maxBmi += 2;
+      }
+
+      // Build points coordinates
+      const points = data.map((record, index) => {
+        const x = padding + (index * (width - 2 * padding) / (data.length - 1));
+        // Y goes from top to bottom, so invert it
+        const y = height - padding - ((record.bmi - minBmi) * (height - 2 * padding) / (maxBmi - minBmi));
+        return { x, y, record };
+      });
+
+      // Construct SVG lines & shapes
+      let dPath = `M ${points[0].x} ${points[0].y}`;
+      for (let i = 1; i < points.length; i++) {
+        dPath += ` L ${points[i].x} ${points[i].y}`;
+      }
+
+      let dArea = `${dPath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
+
+      // Circles for data points
+      let dotsHtml = '';
+      points.forEach(p => {
+        dotsHtml += `<circle cx="${p.x}" cy="${p.y}" r="4.5" data-bmi="${p.record.bmi}" data-date="${p.record.date}">
+          <title>วันที่ ${p.record.date} | BMI: ${p.record.bmi}</title>
+        </circle>`;
+      });
+
+      trendSvg.innerHTML = `
+        <path class="trend-area" d="${dArea}" />
+        <path class="trend-glow" d="${dPath}" />
+        <path class="trend-path" d="${dPath}" />
+        <g class="trend-dots">
+          ${dotsHtml}
+        </g>
+      `;
+
+      // Calculate weight difference from the latest 2 calculations
+      const latest = appState.history[0];
+      const previous = appState.history[1];
+      const weightDiff = latest.weight - previous.weight;
+      
+      let trendText = '';
+      let weightUnit = appState.unit === 'metric' ? 'กก.' : 'lbs';
+      let diffVal = appState.unit === 'metric' ? Math.abs(weightDiff) : Math.abs(kgToLbs(weightDiff));
+
+      if (weightDiff > 0.05) {
+        trendText = `<span class="trend-up">↑ เพิ่มขึ้น ${diffVal.toFixed(1)} ${weightUnit}</span> เทียบกับบันทึกรอบที่แล้ว`;
+      } else if (weightDiff < -0.05) {
+        trendText = `<span class="trend-down">↓ ลดลง ${diffVal.toFixed(1)} ${weightUnit}</span> เทียบกับบันทึกรอบที่แล้ว`;
+      } else {
+        trendText = `<span class="trend-stable">→ คงที่</span> เทียบกับบันทึกรอบที่แล้ว`;
+      }
+
+      trendStatusText.innerHTML = trendText;
+    }
+
+    // Trigger Calculations on Click
+    btnCalc.addEventListener('click', () => {
+      calculateBMI(true);
+    });
+
+    // Delete single history item
+    historyList.addEventListener('click', (e) => {
+      const deleteBtn = e.target.closest('.btn-delete-hist');
+      if (!deleteBtn) return;
+
+      const recordId = parseInt(deleteBtn.dataset.id);
+      appState.history = appState.history.filter(record => record.id !== recordId);
+      saveHistoryToLocalStorage();
+      renderHistory();
+    });
+
+    // Clear all history
+    btnClearHistory.addEventListener('click', () => {
+      if (confirm('คุณต้องการลบประวัติการคำนวณทั้งหมดใช่หรือไม่?')) {
+        appState.history = [];
+        saveHistoryToLocalStorage();
+        renderHistory();
+      }
+    });
+
+    // Chart resizing listener
+    window.addEventListener('resize', () => {
+      if (appState.history.length >= 2) {
+        renderTrendChart();
+      }
+    });
+  </script>
+</body>
+</html>
