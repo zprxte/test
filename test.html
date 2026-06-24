@@ -12,13 +12,13 @@
   <style>
     /* Design Tokens & Reset */
     :root {
-      --bg-dark: #0d0a21;
-      --bg-card: rgba(30, 27, 57, 0.45);
-      --bg-card-hover: rgba(43, 39, 79, 0.6);
+      --bg-dark: #070f2b;
+      --bg-card: rgba(27, 38, 59, 0.45);
+      --bg-card-hover: rgba(41, 53, 86, 0.6);
       --border-color: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(139, 92, 246, 0.5);
+      --border-focus: rgba(59, 130, 246, 0.5);
       --text-main: #ffffff;
-      --text-muted: #a5b4fc;
+      --text-muted: #93c5fd;
       
       /* BMI Category Colors */
       --color-underweight: #38bdf8; /* Cyan */
@@ -27,8 +27,8 @@
       --color-obese: #f87171;        /* Red */
       
       /* Gradients */
-      --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
-      --gradient-glow: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+      --gradient-primary: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+      --gradient-glow: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(0,0,0,0) 70%);
     }
 
     * {
@@ -43,8 +43,8 @@
     body {
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+        radial-gradient(circle at 10% 20%, rgba(29, 78, 216, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 40%);
       background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
@@ -84,7 +84,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+      box-shadow: 0 8px 20px rgba(29, 78, 216, 0.35);
     }
 
     .logo-icon svg {
@@ -96,7 +96,7 @@
     header h1 {
       font-size: 2.5rem;
       font-weight: 800;
-      background: linear-gradient(to right, #ffffff, #d946ef, #38bdf8);
+      background: linear-gradient(to right, #ffffff, #60a5fa, #38bdf8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: -0.5px;
@@ -184,7 +184,7 @@
     .toggle-btn.active {
       background: var(--gradient-primary);
       color: white;
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
     }
 
     /* Input Grid styling */
@@ -237,7 +237,7 @@
 
     .input-control:focus {
       border-color: var(--border-focus);
-      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+      box-shadow: 0 0 10px rgba(29, 78, 216, 0.2);
     }
 
     /* Custom range sliders */
@@ -265,13 +265,13 @@
       border-radius: 50%;
       background: #ffffff;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 0 4px rgba(139, 92, 246, 0.3);
+      box-shadow: 0 0 10px rgba(29, 78, 216, 0.8), 0 0 0 4px rgba(29, 78, 216, 0.3);
       transition: transform 0.1s, background 0.3s;
     }
 
     .range-slider::-webkit-slider-thumb:hover {
       transform: scale(1.2);
-      background: #d946ef;
+      background: #06b6d4;
     }
 
     .range-slider::-moz-range-thumb {
@@ -281,13 +281,13 @@
       border-radius: 50%;
       background: #ffffff;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(139, 92, 246, 0.8), 0 0 0 4px rgba(139, 92, 246, 0.3);
+      box-shadow: 0 0 10px rgba(29, 78, 216, 0.8), 0 0 0 4px rgba(29, 78, 216, 0.3);
       transition: transform 0.1s, background 0.3s;
     }
 
     .range-slider::-moz-range-thumb:hover {
       transform: scale(1.2);
-      background: #d946ef;
+      background: #06b6d4;
     }
 
     /* Gender Selection Panel */
@@ -320,13 +320,13 @@
     }
 
     .gender-option.active {
-      background: rgba(139, 92, 246, 0.12);
-      border-color: rgba(139, 92, 246, 0.4);
+      background: rgba(29, 78, 216, 0.12);
+      border-color: rgba(29, 78, 216, 0.4);
       color: white;
     }
 
     .gender-option.active svg {
-      fill: #d946ef;
+      fill: #06b6d4;
       transform: scale(1.1);
     }
 
@@ -341,7 +341,7 @@
       font-size: 1.1rem;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 6px 20px rgba(217, 70, 239, 0.25);
+      box-shadow: 0 6px 20px rgba(29, 78, 216, 0.25);
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       margin-top: 1rem;
       display: flex;
@@ -352,7 +352,7 @@
 
     .btn-calculate:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(217, 70, 239, 0.4);
+      box-shadow: 0 10px 25px rgba(29, 78, 216, 0.4);
       filter: brightness(1.1);
     }
 
@@ -755,7 +755,7 @@
 
     .trend-glow {
       fill: none;
-      stroke: #8b5cf6;
+      stroke: #2563eb;
       stroke-width: 6;
       stroke-opacity: 0.15;
       stroke-linecap: round;
@@ -764,7 +764,7 @@
 
     .trend-dots circle {
       fill: #ffffff;
-      stroke: #d946ef;
+      stroke: #06b6d4;
       stroke-width: 2.5;
       transition: r 0.2s ease;
       cursor: pointer;
@@ -799,17 +799,17 @@
   <svg class="svg-defs-hidden">
     <defs>
       <linearGradient id="title-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#8b5cf6" />
-        <stop offset="100%" stop-color="#d946ef" />
+        <stop offset="0%" stop-color="#2563eb" />
+        <stop offset="100%" stop-color="#06b6d4" />
       </linearGradient>
       <linearGradient id="chart-grad" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" stop-color="#38bdf8" />
-        <stop offset="50%" stop-color="#8b5cf6" />
-        <stop offset="100%" stop-color="#d946ef" />
+        <stop offset="50%" stop-color="#2563eb" />
+        <stop offset="100%" stop-color="#0284c7" />
       </linearGradient>
       <linearGradient id="area-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#8b5cf6" />
-        <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+        <stop offset="0%" stop-color="#2563eb" />
+        <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
       </linearGradient>
     </defs>
   </svg>
